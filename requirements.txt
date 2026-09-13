@@ -1,0 +1,10 @@
+langchain
+langchain-openrouter
+langchain-community
+langchain-chroma
+langchain-huggingface
+langchain-text-splitters
+langchain-tavily
+chromadb
+python-dotenv
+sentence-transformers

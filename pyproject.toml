@@ -1,0 +1,26 @@
+[project]
+name = "deepeval-project"
+version = "0.1.0"
+description = "RAG project with LLMs and DeepEval for evaluation."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.5.9",
+    "deepagents>=0.7.13",
+    "deepeval>=4.2.2",
+    "langchain-chroma>=1.1.0",
+    "langchain-community>=0.4.2",
+    "langchain-huggingface>=1.2.2",
+    "langchain-openai>=1.6.0",
+    "langchain-openrouter>=0.2.8",
+    "langchain-pinecone>=0.2.13",
+    "langchain-tavily>=0.2.18",
+    "langchain-text-splitters>=1.1.2",
+    "langchain[mcp]>=1.4.0",
+    "langgraph>=1.2.11",
+    "numpy>=2.5.3",
+    "pinecone-client>=6.0.0",
+    "python-dotenv>=1.2.3",
+    "requests>=2.34.2",
+    "sentence-transformers>=6.0.1",
+]
