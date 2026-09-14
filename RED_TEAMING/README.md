@@ -6,9 +6,9 @@ This is different from paraphrase robustness testing: paraphrasing changes the *
 
 ## Vulnerability and Attacks
 
-- **`Robustness`** — the vulnerability being probed: does the agent hold its role and instructions under adversarial pressure?
-- **`PromptInjection`** — attempts to override the agent's system prompt or instructions from within the user input.
-- **`ContextPoisoning`** — attempts to plant false or misleading context that the agent might treat as ground truth.
+- **`Robustness`** - the vulnerability being probed: does the agent hold its role and instructions under adversarial pressure?
+- **`PromptInjection`** - attempts to override the agent's system prompt or instructions from within the user input.
+- **`ContextPoisoning`** - attempts to plant false or misleading context that the agent might treat as ground truth.
 
 Both attacks are run against the same `Robustness` vulnerability in a single `red_team()` call, since they're two strategies for the same underlying test, not separate concerns.
 
@@ -26,5 +26,5 @@ python fault_injection_redteam.py
 
 ## Notes
 
-- `weight` on each attack controls how often that attack strategy is sampled relative to the others — it does not affect scoring.
-- This only probes *behavior* (did the agent comply with something it shouldn't have). It does not check tool-definition provenance (e.g. whether a tool's definition silently changed) — that's a separate concern, sometimes called "rug-pull" testing.
+- `weight` on each attack controls how often that attack strategy is sampled relative to the others - it does not affect scoring.
+- This only probes *behavior* (did the agent comply with something it shouldn't have). It does not check tool-definition provenance (e.g. whether a tool's definition silently changed) - that's a separate concern, sometimes called "rug-pull" testing.

@@ -36,6 +36,9 @@ DeepEval-project/
 │   ├── golden_synthesis.py  # Generate goldens from the knowledge base
 │   └── conversation_simulator.py  # Simulate full conversations with the agent
 │
+├── RED_TEAMING/             # Fault-Injection Red-Teaming using DeepTeam
+│   └── fault_injection_redteam.py # Tests adversarial robustness (prompt injection, context poisoning)
+│
 └── config.py                # Centralized model & judge configuration
 ```
 
@@ -291,6 +294,21 @@ python conversation_simulator.py
 
 ---
 
+## Fault-Injection Red-Teaming (`RED_TEAMING/`)
+
+Tests whether the agent degrades gracefully or breaks under adversarial inputs, using [DeepTeam](https://github.com/confident-ai/deepteam).
+
+Unlike safety evaluations which test for toxicity or bias, fault injection adversarial tests probe the agent's robustness against:
+- `PromptInjection` - attempts to override the agent's system prompt or instructions from within the user input.
+- `ContextPoisoning` - attempts to plant false or misleading context that the agent might treat as ground truth.
+
+```bash
+cd RED_TEAMING
+python fault_injection_redteam.py
+```
+
+---
+
 ## ️ Configuration (`config.py`)
 
 All model settings are centralized in the root `config.py`. **No hardcoded model names exist in any eval script.**
@@ -406,6 +424,9 @@ cd llm-eval/multi-turn-eval && python multi_turn_metrics.py
 
 # Paraphrase robustness
 cd llm-eval/Paraphrase-robustness && python paraphrase_robustness.py
+
+# Fault-Injection Red-Teaming
+cd RED_TEAMING && python fault_injection_redteam.py
 ```
 
 Results are printed to the console and (if `CONFIDENT_AI_API_KEY` is set) logged to your [Confident AI dashboard](https://app.confident-ai.com).
