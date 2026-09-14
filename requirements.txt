@@ -8,3 +8,5 @@ chromadb
 python-dotenv
 deepeval[inspect]
 deepeval
+mcp<2
+langchain-mcp-adapters
