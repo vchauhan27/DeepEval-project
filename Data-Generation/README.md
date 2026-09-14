@@ -6,12 +6,12 @@ Place both files in the same directory as `agent.py`.
 
 ## Files
 
-- `golden_synthesis.py` — generates synthetic goldens from the documents in `data/` (the same folder `ingest.py` reads). Produces:
+- `golden_synthesis.py` - generates synthetic goldens from the documents in `data/` (the same folder `ingest.py` reads). Produces:
   - single-turn goldens (`input` + `expected_output`) grounded in the knowledge base, for evaluating direct Q&A.
   - conversational goldens (`scenario` + `expected_outcome`), which define multi-turn scenarios but no actual dialogue yet.
   - Output is saved as JSON under `synthetic_data/`.
 
-- `conversation_simulator.py` — runs full multi-turn conversations against the live agent. It defines a handful of `ConversationalGolden`s (scenario, expected outcome, persona) covering the agent's core tool paths — internal RAG lookup, web search, citation formatting, word counting, and long-term memory — then simulates a back-and-forth dialogue for each one by:
+- `conversation_simulator.py` - runs full multi-turn conversations against the live agent. It defines a handful of `ConversationalGolden`s (scenario, expected outcome, persona) covering the agent's core tool paths - internal RAG lookup, web search, citation formatting, word counting, and long-term memory - then simulates a back-and-forth dialogue for each one by:
   1. Having a simulated LLM user role-play the persona and generate the next message.
   2. Passing that message to the actual `agent` from `agent.py` via a `model_callback`, keyed by a per-conversation `thread_id` so each simulated conversation gets its own checkpointer/memory session.
   3. Repeating until the expected outcome is reached or `max_user_simulations` turns pass.
@@ -70,6 +70,6 @@ evaluate(test_cases=test_cases, metrics=[TurnRelevancyMetric()])
 
 ## Notes
 
-- Review generated goldens before treating them as ground truth — synthetic data is a starting point, not a replacement for curated or production examples.
-- `conversation_simulator.py` imports `agent` from `agent.py`, which means module-level setup in `agent.py` (model, vectorstore, MCP client) runs on import — make sure `chroma_db/` has already been populated via `ingest.py` and `mcp_server.py` is reachable.
-- This is separate from the DeepEval **safety** evals already described in the main `README.md` (`../llm-eval/safety-eval/`) — those test adversarial/misuse behavior, while these two scripts generate the functional evaluation dataset itself.
+- Review generated goldens before treating them as ground truth - synthetic data is a starting point, not a replacement for curated or production examples.
+- `conversation_simulator.py` imports `agent` from `agent.py`, which means module-level setup in `agent.py` (model, vectorstore, MCP client) runs on import - make sure `chroma_db/` has already been populated via `ingest.py` and `mcp_server.py` is reachable.
+- This is separate from the DeepEval **safety** evals already described in the main `README.md` (`../llm-eval/safety-eval/`) - those test adversarial/misuse behavior, while these two scripts generate the functional evaluation dataset itself.

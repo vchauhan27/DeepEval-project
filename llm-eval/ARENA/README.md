@@ -12,10 +12,10 @@ It takes an `input` question and evaluates the corresponding outputs side-by-sid
 The output determines a "winner" for each test case or declares a tie. An example run looks like this:
 
 ```text
-🎉 Arena completed! (time taken: 62.0s | token cost: 0.0 USD)                                  
-🏆 Results (1 total test cases):
+ Arena completed! (time taken: 62.0s | token cost: 0.0 USD)                                  
+ Results (1 total test cases):
     » prompt1 (original): 1 wins
 
-✓ Done 🎉! View results on 
+ Done ! View results on 
 https://app.confident-ai.com/project/...
 ```

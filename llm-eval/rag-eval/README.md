@@ -7,7 +7,7 @@ This directory contains the evaluation suite for the Retrieval-Augmented Generat
 - **Answer Relevancy (`AnswerRelevancyMetric`)**: Evaluates whether the agent's final generated answer is directly relevant to the user's question, avoiding tangential or unhelpful information.
 - **Faithfulness (`FaithfulnessMetric`)**: Measures whether the final answer is faithful to the retrieved context. It penalizes hallucinations or claims that are not supported by the retrieved documents.
 - **Contextual Relevancy (`ContextualRelevancyMetric`)**: Assesses if the retrieved documents themselves are actually relevant to the question asked.
-- **Contextual Precision (`ContextualPrecisionMetric`)**: Measures the ranking quality of the retrieved contexts—specifically, whether the most highly relevant chunks are ranked at the top.
+- **Contextual Precision (`ContextualPrecisionMetric`)**: Measures the ranking quality of the retrieved contexts-specifically, whether the most highly relevant chunks are ranked at the top.
 - **Contextual Recall (`ContextualRecallMetric`)**: Evaluates if the retriever successfully found all the necessary information required to answer the question.
 
 ## How It Is Applied

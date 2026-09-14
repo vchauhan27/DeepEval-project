@@ -1,14 +1,14 @@
-# DeepEval Agentic RAG — Research Agent & Evaluation Suite
+# DeepEval Agentic RAG - Research Agent & Evaluation Suite
 
 An end-to-end implementation of an **Agentic RAG (Retrieval-Augmented Generation)** system built with **LangChain** and **LangGraph**, paired with a comprehensive evaluation suite powered by **[DeepEval](https://github.com/confident-ai/deepeval)**.
 
 The project covers two things simultaneously:
-1. **A production-style research agent** — with RAG, web search, MCP tools, short-term and long-term memory, and a structured system prompt.
-2. **A full evaluation layer** — that tests whether the agent is behaving correctly across every capability: retrieval quality, tool use, safety, memory, planning, and conversational coherence.
+1. **A production-style research agent** - with RAG, web search, MCP tools, short-term and long-term memory, and a structured system prompt.
+2. **A full evaluation layer** - that tests whether the agent is behaving correctly across every capability: retrieval quality, tool use, safety, memory, planning, and conversational coherence.
 
 ---
 
-## 📐 Architecture Overview
+##  Architecture Overview
 
 ```
 DeepEval-project/
@@ -21,7 +21,7 @@ DeepEval-project/
 │   ├── prompt2.txt          # System prompt v2 (explicit planning step)
 │   └── data/                # Source documents for the knowledge base
 │
-├── llm-eval/                # Evaluation suite (8 sub-evals)
+├── llm-eval/                # Evaluation suite (9 sub-evals)
 │   ├── rag-eval/            # RAG retrieval & generation quality
 │   ├── agent-eval/          # Agentic trace metrics (planning, tool selection)
 │   ├── DAG/                 # Deterministic DAG-based groundedness gates
@@ -29,7 +29,8 @@ DeepEval-project/
 │   ├── safety-eval/         # Adversarial safety & guardrail testing
 │   ├── MCP-Eval/            # MCP tool invocation correctness
 │   ├── ARENA/               # A/B comparison between prompt variants
-│   └── multi-turn-eval/     # All 11 DeepEval conversational metrics
+│   ├── multi-turn-eval/     # All 11 DeepEval conversational metrics
+│   └── Paraphrase-robustness/ # Robustness testing with paraphrased inputs
 │
 ├── Data-Generation/         # Synthetic test case & golden generation
 │   ├── golden_synthesis.py  # Generate goldens from the knowledge base
@@ -40,11 +41,11 @@ DeepEval-project/
 
 ---
 
-## 🤖 Research Agent (`research-agent/`)
+##  Research Agent (`research-agent/`)
 
 ### What it does
 
-The agent is a **loop-based decision maker** — at each step, the LLM reads the conversation history and decides which tool to call next (or whether to stop and answer). It is built with `langchain.agents.create_agent` on top of a LangGraph runtime.
+The agent is a **loop-based decision maker** - at each step, the LLM reads the conversation history and decides which tool to call next (or whether to stop and answer). It is built with `langchain.agents.create_agent` on top of a LangGraph runtime.
 
 ### Tools available to the agent
 
@@ -59,8 +60,8 @@ The agent is a **loop-based decision maker** — at each step, the LLM reads the
 
 ### Memory model
 
-- **Short-term (conversation)**: `InMemorySaver` checkpointer — the agent recalls all prior turns within the same `thread_id`.
-- **Long-term (cross-session)**: `InMemoryStore` — facts saved via `remember_fact` are keyed by `user_id` and survive across threads.
+- **Short-term (conversation)**: `InMemorySaver` checkpointer - the agent recalls all prior turns within the same `thread_id`.
+- **Long-term (cross-session)**: `InMemoryStore` - facts saved via `remember_fact` are keyed by `user_id` and survive across threads.
 
 ### MCP server (`mcp_server.py`)
 
@@ -70,12 +71,12 @@ A **FastMCP** server (stdio transport) that exposes `word_count` and `format_cit
 
 | File | Purpose |
 |------|---------|
-| `prompt1.txt` | Baseline prompt — role definition, tool-use rules, format rules |
-| `prompt2.txt` | Extended prompt — adds an explicit "state your plan first" instruction used for `Plan Quality` evaluation |
+| `prompt1.txt` | Baseline prompt - role definition, tool-use rules, format rules |
+| `prompt2.txt` | Extended prompt - adds an explicit "state your plan first" instruction used for `Plan Quality` evaluation |
 
 ---
 
-## 🧪 Evaluation Suite (`llm-eval/`)
+##  Evaluation Suite (`llm-eval/`)
 
 All eval scripts share a common pattern:
 - Import `agent` and `Context` from `research-agent/agent.py`
@@ -107,7 +108,7 @@ python rag-eval.py
 
 **Script:** `agent-eval.py`
 
-Evaluates the agent's full **execution trace** — not just the final answer, but every step the agent took to get there. Uses DeepEval's trace-based metrics:
+Evaluates the agent's full **execution trace** - not just the final answer, but every step the agent took to get there. Uses DeepEval's trace-based metrics:
 
 | Metric | What it checks |
 |--------|---------------|
@@ -129,19 +130,23 @@ python agent-eval.py
 
 ### 3. DAG Evaluation (`DAG/`)
 
-**Scripts:** `DAG.py`, `conversational_DAG.py`
+**Scripts:** `DAG.py`, `reasoning_DAG.py`, `conversational_DAG.py`
 
 Uses **Directed Acyclic Graph (DAG) metrics** to encode multi-step evaluation logic as a decision tree. The root node makes a deterministic check on `RETRIEVAL_CONTEXT` (not the output text), which avoids false failures when the agent correctly reports that the KB was empty.
 
-**DAG.py** — Single-turn:
+**DAG.py** - Single-turn:
 - `Internal Knowledge Groundedness Gate`: Checks if the agent's answer is grounded in retrieved KB documents (skips the LLM judge automatically for web-search-only answers).
 
-**conversational_DAG.py** — Multi-turn:
+**reasoning_DAG.py** - Single-turn:
+- `Reasoning Validity Gate`: Checks tool selection appropriateness and whether the final answer follows from evidence.
+
+**conversational_DAG.py** - Multi-turn:
 - `Memory Recall Gate`: Checks if the agent correctly recalled information from an earlier turn.
 
 ```bash
 cd llm-eval/DAG
 python DAG.py
+python reasoning_DAG.py
 python conversational_DAG.py
 ```
 
@@ -149,19 +154,23 @@ python conversational_DAG.py
 
 ### 4. GEval Evaluation (`GEval/`)
 
-**Scripts:** `GEval.py`, `conversational_GEval.py`
+**Scripts:** `GEval.py`, `coherence_GEval.py`, `conversational_GEval.py`
 
 Uses **LLM-as-judge GEval** with custom natural-language criteria to evaluate subjective quality dimensions:
 
-**GEval.py** — Single-turn:
+**GEval.py** - Single-turn:
 - `Format Adherence`: Answer-first structure, clear evidence labeling, tool attribution.
 
-**conversational_GEval.py** — Multi-turn:
+**coherence_GEval.py** - Single-turn:
+- `Coherence`: Checks whether the answer is logically organized and free of self-contradiction.
+
+**conversational_GEval.py** - Multi-turn:
 - `Memory Consistency`: Agent correctly attributes user context from earlier turns.
 
 ```bash
 cd llm-eval/GEval
 python GEval.py
+python coherence_GEval.py
 python conversational_GEval.py
 ```
 
@@ -171,7 +180,7 @@ python conversational_GEval.py
 
 **Script:** `safety-eval.py`
 
-Tests adversarial inputs — prompts designed to make the agent misbehave or leak information. Uses DeepEval's built-in safety metrics:
+Tests adversarial inputs - prompts designed to make the agent misbehave or leak information. Uses DeepEval's built-in safety metrics:
 
 | Metric | What it checks |
 |--------|---------------|
@@ -216,7 +225,7 @@ python mcp-eval.py
 
 **Script:** `arena-GEval.py`
 
-Runs an **A/B comparison** between two agent variants — one using `prompt1.txt` and one using `prompt2.txt` — on the same question. A judge LLM picks the winner based on quality, completeness, and evidence use.
+Runs an **A/B comparison** between two agent variants - one using `prompt1.txt` and one using `prompt2.txt` - on the same question. A judge LLM picks the winner based on quality, completeness, and evidence use.
 
 ```bash
 cd llm-eval/ARENA
@@ -252,7 +261,20 @@ python multi_turn_metrics.py
 
 ---
 
-## 🗂️ Data Generation (`Data-Generation/`)
+### 9. Paraphrase Robustness (`Paraphrase-robustness/`)
+
+**Script:** `paraphrase_robustness.py`
+
+Tests the agent's robustness to input variation. Generates paraphrased versions of a question and evaluates the answers using `AnswerRelevancyMetric` to ensure consistent performance regardless of how the question is phrased.
+
+```bash
+cd llm-eval/Paraphrase-robustness
+python paraphrase_robustness.py
+```
+
+---
+
+## ️ Data Generation (`Data-Generation/`)
 
 Scripts for generating evaluation data synthetically from the knowledge base:
 
@@ -269,7 +291,7 @@ python conversation_simulator.py
 
 ---
 
-## ⚙️ Configuration (`config.py`)
+## ️ Configuration (`config.py`)
 
 All model settings are centralized in the root `config.py`. **No hardcoded model names exist in any eval script.**
 
@@ -280,7 +302,7 @@ agent_model_name = "dots-studio/dots-3-note-preview:free"
 # Embedding model (Chroma)
 embedding_model = "baai/bge-m3"
 
-# Judge provider — change this one line to switch all evals
+# Judge provider - change this one line to switch all evals
 JUDGE_PROVIDER = "gemini"   # or "openrouter"
 
 def get_judge_model():
@@ -292,7 +314,7 @@ def get_judge_model():
 
 ---
 
-## 🚀 Setup & Installation
+##  Setup & Installation
 
 ### Requirements
 
@@ -355,7 +377,7 @@ python agent.py
 
 ---
 
-## 🔄 Running All Evaluations
+##  Running All Evaluations
 
 ```bash
 # RAG quality
@@ -365,10 +387,10 @@ cd llm-eval/rag-eval && python rag-eval.py
 cd llm-eval/agent-eval && python agent-eval.py
 
 # DAG groundedness gates
-cd llm-eval/DAG && python DAG.py && python conversational_DAG.py
+cd llm-eval/DAG && python DAG.py && python reasoning_DAG.py && python conversational_DAG.py
 
 # GEval custom criteria
-cd llm-eval/GEval && python GEval.py && python conversational_GEval.py
+cd llm-eval/GEval && python GEval.py && python coherence_GEval.py && python conversational_GEval.py
 
 # Safety & adversarial
 cd llm-eval/safety-eval && python safety-eval.py
@@ -381,13 +403,16 @@ cd llm-eval/ARENA && python arena-GEval.py
 
 # All 11 conversational metrics
 cd llm-eval/multi-turn-eval && python multi_turn_metrics.py
+
+# Paraphrase robustness
+cd llm-eval/Paraphrase-robustness && python paraphrase_robustness.py
 ```
 
 Results are printed to the console and (if `CONFIDENT_AI_API_KEY` is set) logged to your [Confident AI dashboard](https://app.confident-ai.com).
 
 ---
 
-## 🔗 Key Dependencies
+##  Key Dependencies
 
 | Package | Role |
 |---------|------|
