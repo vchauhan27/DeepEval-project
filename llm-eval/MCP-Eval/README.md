@@ -14,17 +14,3 @@ These metrics analyze the agent's ability to discover, select, and accurately pa
 
 ## Example Output
 
-The evaluation logs the conversational turns and checks if the correct MCP tools were invoked at the right time. The judge evaluates the correctness of the tool calls and the final resolution, generating an aggregate metrics table:
-
-```text
-╭─────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Aggregate Metrics                                                                           │
-│                                                                                             │
-│  Metric                   ┃ Average Score     ┃ Pass Rate                         ┃ Total   │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━ │
-│  Multi-Turn MCP Use       │ 0.00              │ 0.00% | passed=0 | failed=1       │ 1       │
-│  MCP Task Completion      │ 0.00              │ 0.00% | passed=0 | failed=1       │ 1       │
-╰─────────────────────────────────────────────────────────────────────────────────────────────╯
-```
-
-**Note on MCP Task Completion**: In the example above, the metrics scored **0.00** (and thus failed). The judge LLM provided a reason for this failure: the application failed to achieve any successful outcomes, implying the agent might have hallucinated the word count and citation instead of actually invoking the MCP server's tools. DeepEval exposes these details to debug tool-calling pipelines.

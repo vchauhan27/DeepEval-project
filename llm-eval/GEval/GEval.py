@@ -11,18 +11,14 @@ from agent import agent, Context  # type: ignore
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
 from deepeval.test_case import LLMTestCase, SingleTurnParams
-from deepeval.models import OpenRouterModel
 from deepeval.metrics import GEval
 
 
 # ---------------------------------------------------------
-# Judge model
+# Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
 
-JUDGE_MODEL = OpenRouterModel(
-    model=config.eval_model_name,
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
-)
+JUDGE_MODEL = config.get_judge_model()
 
 # ---------------------------------------------------------
 # G-Eval metric
@@ -61,19 +57,21 @@ QUESTIONS = [
 ]
 
 
-def run_agent(question: str) -> str:
+def run_agent(question: str, thread_id: str) -> str:
     result = agent.invoke(
-    {"messages": [{"role": "user", "content": question}]},
-    config={"configurable": {"thread_id": "eval-thread"}},
-    context=Context(user_id="eval-user"),
-)
+        {"messages": [{"role": "user", "content": question}]},
+        config={"configurable": {"thread_id": thread_id}},
+        context=Context(user_id="eval-user"),
+    )
     return result["messages"][-1].content
 
 
 test_cases = []
 
-for question in QUESTIONS:
-    actual_output = run_agent(question)
+for i, question in enumerate(QUESTIONS):
+    # Use a unique thread_id per question to prevent cross-contamination
+    # from the checkpointer's conversation history.
+    actual_output = run_agent(question, thread_id=f"geval-eval-{i}")
 
     print(f"Q: {question}")
     print(f"A: {actual_output[:200]}...\n")

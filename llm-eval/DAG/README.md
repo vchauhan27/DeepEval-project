@@ -15,24 +15,3 @@ For multi-turn evaluations, the conversational DAG metric evaluates the agent's 
 
 ## Example Output
 
-The DAG metrics traverse the decision tree to calculate a score and return a reason for the outcome. An example output looks like this:
-
-```text
-╭─────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Aggregate Metrics                                                                           │
-│                                                                                             │
-│  Metric                              ┃ Average Score ┃ Pass Rate                   ┃ Total  │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━ │
-│  Internal Knowledge Groundedness     │ 0.10          │ 0.00% | passed=0 | failed=2 │ 2      │
-│  Gate [DAG]                          │               │                             │        │
-╰─────────────────────────────────────────────────────────────────────────────────────────────╯
-
-╭─────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Aggregate Metrics                                                                           │
-│                                                                                             │
-│  Metric                            ┃ Average Score ┃ Pass Rate                     ┃ Total  │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━ │
-│  Memory Recall Gate                │ 1.00          │ 100.00% | passed=1 | failed=0 │ 1      │
-│  [ConversationalDAG]               │               │                               │        │
-╰─────────────────────────────────────────────────────────────────────────────────────────────╯
-```

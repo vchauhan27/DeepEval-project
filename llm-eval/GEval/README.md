@@ -15,23 +15,3 @@ For multi-turn evaluations, we construct a conversation history (`messages`) and
 
 ## Example Output
 
-The metrics return a score between 0 and 1, along with a pass/fail threshold. An example successful run looks like this:
-
-```text
-╭─────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Aggregate Metrics                                                                           │
-│                                                                                             │
-│  Metric                       ┃ Average Score   ┃ Pass Rate                        ┃ Total  │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━ │
-│  Format Adherence [GEval]     │ 0.60            │ 50.00% | passed=1 | failed=1     │ 2      │
-╰─────────────────────────────────────────────────────────────────────────────────────────────╯
-
-╭─────────────────────────────────────────────────────────────────────────────────────────────╮
-│ Aggregate Metrics                                                                           │
-│                                                                                             │
-│  Metric                            ┃ Average Score ┃ Pass Rate                     ┃ Total  │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━ │
-│  Memory Consistency                │ 1.00          │ 100.00% | passed=1 | failed=0 │ 1      │
-│  [Conversational GEval]            │               │                               │        │
-╰─────────────────────────────────────────────────────────────────────────────────────────────╯
-```

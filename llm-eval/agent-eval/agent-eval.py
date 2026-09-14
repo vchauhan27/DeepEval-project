@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 import config
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'research-agent')))
-from agent import agent, invoke_with_tracing  # type: ignore
+from agent import agent, invoke_with_tracing, Context  # type: ignore
 
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
@@ -22,30 +22,18 @@ from deepeval.metrics import (
 )
 
 
+# ===========================================================
+# PART 1 -- Trace-based metrics
+# ===========================================================
+
 # ---------------------------------------------------------
-# Judge model
+# Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
-# from deepeval.models import GeminiModel
-# JUDGE_MODEL_NAME = os.environ.get("JUDGE_MODEL_NAME", "gemini-flash-lite-latest")
 
-# JUDGE_MODEL = GeminiModel(
-#     model=JUDGE_MODEL_NAME,
-#     api_key=os.environ.get("GOOGLE_API_KEY"),
-#     temperature=0,
-# )
+JUDGE_MODEL_NAME = config.JUDGE_PROVIDER
+JUDGE_MODEL = config.get_judge_model()
 
-# print(f"Using judge model: {JUDGE_MODEL_NAME} (Google AI Studio)\n")
-
-from deepeval.models import OpenRouterModel
-
-JUDGE_MODEL_NAME = os.environ.get("JUDGE_MODEL_NAME", config.eval_model_name)
-
-JUDGE_MODEL = OpenRouterModel(
-    model=JUDGE_MODEL_NAME,
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
-)
-
-print(f"Using judge model: {JUDGE_MODEL_NAME} (OpenRouter)\n")
+print(f"Using judge model: {JUDGE_MODEL_NAME} (via config.py)\n")
 
 
 # ===========================================================
@@ -97,7 +85,9 @@ TOOL_TEST_CASES = [
 
 def run_agent(question: str):
     result = agent.invoke(
-        {"messages": [{"role": "user", "content": question}]}
+        {"messages": [{"role": "user", "content": question}]},
+        config={"configurable": {"thread_id": "agent-eval-tool"}},
+        context=Context(user_id="eval-user"),  # required for memory tools
     )
     messages = result["messages"]
 

@@ -1,23 +1,23 @@
 import os
 import sys
-import os
+import asyncio
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
-
+from pathlib import Path
 from dotenv import load_dotenv
 
 from langchain.agents import create_agent
-from langchain.tools import tool
+from langchain.tools import tool, ToolRuntime
 from langchain_openrouter import ChatOpenRouter
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_tavily import TavilySearch
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from dataclasses import dataclass
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.store.memory import InMemoryStore
-from langchain.tools import ToolRuntime
 
 # ---------------------------------------------------------
 # Environment
@@ -26,7 +26,6 @@ from langchain.tools import ToolRuntime
 load_dotenv()
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
-
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
 if not OPENROUTER_API_KEY:
@@ -35,6 +34,8 @@ if not OPENROUTER_API_KEY:
 if not TAVILY_API_KEY:
     raise RuntimeError("TAVILY_API_KEY is not set.")
 
+BASE_DIR = Path(__file__).resolve().parent
+DB_DIR = BASE_DIR / "chroma_db"
 
 # ---------------------------------------------------------
 # 1. OpenRouter reasoning model
@@ -46,7 +47,6 @@ model = ChatOpenRouter(
     max_tokens=3000,
     max_retries=2,
 )
-
 
 # ---------------------------------------------------------
 # 2. BGE-M3 embeddings
@@ -72,15 +72,9 @@ embeddings = OpenRouterEmbeddings(
     model=config.embedding_model,
 )
 
-
 # ---------------------------------------------------------
 # 3. Chroma vector database
 # ---------------------------------------------------------
-
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent
-DB_DIR = BASE_DIR / "chroma_db"
 
 vectorstore = Chroma(
     collection_name="research_docs",
@@ -90,11 +84,12 @@ vectorstore = Chroma(
 
 # short memory
 checkpointer = InMemorySaver()
+
 # ---------------------------------------------------------
 # 4. Retriever
 # ---------------------------------------------------------
-retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
+retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
 # ---------------------------------------------------------
 # 5. RAG tool
@@ -117,14 +112,8 @@ def retrieve_documents(query: str) -> str:
 
     results = []
 
-    for i, document in enumerate(
-        documents,
-        start=1,
-    ):
-        source = document.metadata.get(
-            "source",
-            "unknown",
-        )
+    for i, document in enumerate(documents, start=1):
+        source = document.metadata.get("source", "unknown")
 
         results.append(
             f"""
@@ -144,9 +133,7 @@ CONTENT:
 # 6. Web search
 # ---------------------------------------------------------
 
-web_search = TavilySearch(
-    max_results=5,
-)
+web_search = TavilySearch(max_results=5)
 
 
 @tool
@@ -163,12 +150,31 @@ def search_web(query: str) -> str:
 
     return str(result)
 
+# ---------------------------------------------------------
+# 7. MCP utility tools (word_count, format_citation) — served
+#    by mcp_server.py, nothing to do with retrieval.
+# ---------------------------------------------------------
+
+mcp_client = MultiServerMCPClient(
+    {
+        "utils": {
+            "transport": "stdio",
+            "command": sys.executable,
+            "args": [str(BASE_DIR / "mcp_server.py")],
+        }
+    }
+)
+
+mcp_tools = asyncio.run(mcp_client.get_tools())
+
 # long memory
 store = InMemoryStore()
+
 
 @dataclass
 class Context:
     user_id: str
+
 
 @tool
 def remember_fact(fact: str, runtime: ToolRuntime[Context]) -> str:
@@ -182,6 +188,7 @@ def remember_fact(fact: str, runtime: ToolRuntime[Context]) -> str:
     runtime.store.put(("user_facts", runtime.context.user_id), key, {"fact": fact})
     return "Saved."
 
+
 @tool
 def recall_facts(runtime: ToolRuntime[Context]) -> str:
     """Retrieve previously saved facts about the user."""
@@ -194,18 +201,18 @@ def recall_facts(runtime: ToolRuntime[Context]) -> str:
 
 
 # ---------------------------------------------------------
-# 7. Agent system prompt
+# 8. Agent system prompt
 # ---------------------------------------------------------
 
 #   prompt1.txt -- original prompt (no explicit planning step)
 #   prompt2.txt -- current prompt (adds a "state your plan" instruction)
 
 PROMPT_PATH = BASE_DIR / "prompt1.txt"
- 
+
 SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8")
 
 # ---------------------------------------------------------
-# 8. Create agent
+# 9. Create agent
 # ---------------------------------------------------------
 
 agent = create_agent(
@@ -213,25 +220,20 @@ agent = create_agent(
     tools=[
         retrieve_documents,
         search_web,
-        remember_fact,      
-        recall_facts,       
+        *mcp_tools,
+        remember_fact,
+        recall_facts,
     ],
     system_prompt=SYSTEM_PROMPT,
-    checkpointer=checkpointer,   
-    store=store,                 
-    context_schema=Context,      
+    checkpointer=checkpointer,
+    store=store,
+    context_schema=Context,
 )
 
 
 # ---------------------------------------------------------
-# 8b. Traced invocation helper (for DeepEval agentic metrics)
+# 9b. Traced invocation helper (for DeepEval agentic metrics)
 # ---------------------------------------------------------
-# Task Completion, Step Efficiency, Plan Adherence, and Plan Quality all
-# need to see the agent's full execution trace, not just a single
-# input/output pair. DeepEval provides a LangChain CallbackHandler that
-# captures every model call, tool call, and step as a trace automatically
-# -- no change to the agent or tools themselves, just this one wrapper.
-
 
 def invoke_with_tracing(question: str, thread_id: str = "default", user_id: str = "default", agent_instance=None):
     from deepeval.integrations.langchain import CallbackHandler
@@ -249,7 +251,7 @@ def invoke_with_tracing(question: str, thread_id: str = "default", user_id: str 
 
 
 # ---------------------------------------------------------
-# 9. Run agent
+# 10. Run agent
 # ---------------------------------------------------------
 
 
@@ -260,10 +262,12 @@ def main():
     print("=" * 70)
 
     print("\nAvailable tools:")
-
     print("  - retrieve_documents")
-
     print("  - search_web")
+    for t in mcp_tools:
+        print(f"  - {t.name} (MCP)")
+    print("  - remember_fact")
+    print("  - recall_facts")
 
     while True:
         print("\n" + "-" * 70)
@@ -273,10 +277,7 @@ def main():
         if not question:
             continue
 
-        if question.lower() in {
-            "exit",
-            "quit",
-        }:
+        if question.lower() in {"exit", "quit"}:
             print("\nExiting.")
             break
 
@@ -290,16 +291,12 @@ def main():
             )
 
             print("=" * 70)
-
             print("ANSWER")
-
             print("=" * 70)
-
             print(result["messages"][-1].content)
 
         except Exception as e:
             print("\nAgent error:")
-
             print(repr(e))
 
 

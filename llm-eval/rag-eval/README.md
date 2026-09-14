@@ -19,18 +19,3 @@ The script runs the agent to capture the `actual_output` and the `retrieval_cont
 
 ## Example Output
 
-The metrics return a score between 0 and 1, along with a pass/fail threshold. An example successful run looks like this:
-
-```text
-╭────────────────────────────────────────────────────────────────────────────────────╮
-│ Aggregate Metrics                                                                  │
-│                                                                                    │
-│  Metric                 ┃ Average Score  ┃ Pass Rate                      ┃ Total  │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━ │
-│  Answer Relevancy       │ 0.75           │ 100.00% | passed=1 | failed=0  │ 1      │
-│  Faithfulness           │ 1.00           │ 100.00% | passed=1 | failed=0  │ 1      │
-│  Contextual Relevancy   │ 1.00           │ 100.00% | passed=1 | failed=0  │ 1      │
-│  Contextual Precision   │ 1.00           │ 100.00% | passed=1 | failed=0  │ 1      │
-│  Contextual Recall      │ 1.00           │ 100.00% | passed=1 | failed=0  │ 1      │
-╰────────────────────────────────────────────────────────────────────────────────────╯
-```

@@ -7,24 +7,21 @@ import config
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'research-agent')))
 from agent import agent, Context  # type: ignore
+from langchain_core.runnables import RunnableConfig
 
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
 from deepeval.test_case import Turn, MultiTurnParams, ConversationalTestCase
-from deepeval.models import OpenRouterModel
 from deepeval.metrics import ConversationalDAGMetric
 from deepeval.metrics.dag.graph import DeepAcyclicGraph
 from deepeval.metrics.conversational_dag.nodes import ConversationalBinaryJudgementNode
 
 
 # ---------------------------------------------------------
-# Judge model
+# Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
 
-JUDGE_MODEL = OpenRouterModel(
-    model=config.eval_model_name,
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
-)
+JUDGE_MODEL = config.get_judge_model()
 
 # ---------------------------------------------------------
 # Run a multi-turn conversation on one thread_id
@@ -37,12 +34,12 @@ CONVERSATION = [
 
 
 def run_conversation(questions, thread_id="geval-conversation-1"):  # or dag-conversation-1
-    config = {"configurable": {"thread_id": thread_id}}
+    run_config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
     result = None
     for question in questions:
         result = agent.invoke(
             {"messages": [{"role": "user", "content": question}]},
-            config=config,
+            config=run_config,
             context=Context(user_id="eval-user"),
         )
 

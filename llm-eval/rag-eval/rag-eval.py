@@ -1,7 +1,6 @@
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
 from deepeval.test_case import LLMTestCase
-from deepeval.models import GeminiModel
 from deepeval.metrics import (
     AnswerRelevancyMetric,
     FaithfulnessMetric,
@@ -22,20 +21,14 @@ from agent import agent  # type: ignore
 
 
 # ---------------------------------------------------------
-# Judge model
+# Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
 
 os.environ.setdefault("DEEPEVAL_PER_ATTEMPT_TIMEOUT_SECONDS_OVERRIDE", "120")
 
-JUDGE_MODEL_NAME = os.environ.get("JUDGE_MODEL_NAME", "gemini-flash-lite-latest")
+JUDGE_MODEL = config.get_judge_model()
 
-JUDGE_MODEL = GeminiModel(
-    model=JUDGE_MODEL_NAME,
-    api_key=os.environ.get("GOOGLE_API_KEY"),
-    temperature=0,
-)
-
-print(f"Using judge model: {JUDGE_MODEL_NAME} (Google AI Studio)\n")
+print(f"Using judge model: {config.JUDGE_PROVIDER} / {config.eval_model_name_gemini} (via config.py)\n")
 
 
 # ---------------------------------------------------------

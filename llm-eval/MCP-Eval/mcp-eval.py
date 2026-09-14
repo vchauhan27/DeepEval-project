@@ -16,52 +16,19 @@ from langchain_core.messages import ToolMessage
 from deepeval.test_case import LLMTestCase, ConversationalTestCase, Turn
 from deepeval.test_case.mcp import MCPServer, MCPToolCall
 from deepeval.metrics import MCPUseMetric, MultiTurnMCPUseMetric, MCPTaskCompletionMetric
-from deepeval.models import DeepEvalBaseLLM
 from deepeval import evaluate
-
-import openai
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 MCP_SERVER_PATH = BASE_DIR.parent.parent / "research-agent" / "mcp_server.py"
 
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
-if not OPENROUTER_API_KEY:
-    raise RuntimeError("OPENROUTER_API_KEY is not set.")
-
 
 # ---------------------------------------------------------
-# 1. OpenRouter judge model for DeepEval
+# 1. Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
 
-class OpenRouterEvalModel(DeepEvalBaseLLM):
-    def __init__(self, model_name: str | None = None):
-        self.model_name = model_name or config.eval_model_name
-        self.client = openai.OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=OPENROUTER_API_KEY,
-        )
-        super().__init__(self.model_name)
-
-    def load_model(self):
-        return self
-
-    def generate(self, prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.choices[0].message.content or ""
-
-    async def a_generate(self, prompt: str) -> str:
-        return self.generate(prompt)
-
-    def get_model_name(self) -> str:
-        return self.model_name
-
-
-judge_model = OpenRouterEvalModel()
+judge_model = config.get_judge_model()
 
 
 # ---------------------------------------------------------
@@ -107,8 +74,8 @@ def extract_mcp_tool_calls(messages) -> list[MCPToolCall]:
     return calls
 
 
-def run_turn(agent, Context, question: str, thread_id: str, user_id: str = "mcp-eval-user"):
-    result = agent.invoke(
+async def run_turn(agent, Context, question: str, thread_id: str, user_id: str = "mcp-eval-user"):
+    result = await agent.ainvoke(
         {"messages": [{"role": "user", "content": question}]},
         config={"configurable": {"thread_id": thread_id}},
         context=Context(user_id=user_id),
@@ -123,7 +90,7 @@ def run_turn(agent, Context, question: str, thread_id: str, user_id: str = "mcp-
 # 4. Single-turn MCP-Use
 # ---------------------------------------------------------
 
-def eval_single_turn(mcp_server: MCPServer):
+async def eval_single_turn(mcp_server: MCPServer):
     from agent import agent, Context
 
     question = (
@@ -133,7 +100,7 @@ def eval_single_turn(mcp_server: MCPServer):
         "Also give me an APA citation for a 2023 article titled "
         "'Grounding LLMs with RAG' by Smith, J. on TechJournal."
     )
-    answer, mcp_calls = run_turn(agent, Context, question, thread_id="mcp-eval-single")
+    answer, mcp_calls = await run_turn(agent, Context, question, thread_id="mcp-eval-single")
 
     test_case = LLMTestCase(
         input=question,
@@ -149,7 +116,7 @@ def eval_single_turn(mcp_server: MCPServer):
 # 5. Multi-turn MCP-Use + MCP Task Completion
 # ---------------------------------------------------------
 
-def eval_multi_turn(mcp_server: MCPServer):
+async def eval_multi_turn(mcp_server: MCPServer):
     from agent import agent, Context
 
     thread_id = "mcp-eval-multi"
@@ -163,7 +130,7 @@ def eval_multi_turn(mcp_server: MCPServer):
     ]
 
     for question in conversation:
-        answer, mcp_calls = run_turn(agent, Context, question, thread_id=thread_id)
+        answer, mcp_calls = await run_turn(agent, Context, question, thread_id=thread_id)
         turns.append(Turn(role="user", content=question))
         turns.append(Turn(role="assistant", content=answer, mcp_tools_called=mcp_calls))
 
@@ -178,15 +145,15 @@ def eval_multi_turn(mcp_server: MCPServer):
     )
 
 
-def main():
-    mcp_server = asyncio.run(get_mcp_server_definition())
+async def main():
+    mcp_server = await get_mcp_server_definition()
 
     print("Running single-turn MCP-Use eval...")
-    eval_single_turn(mcp_server)
+    await eval_single_turn(mcp_server)
 
     print("\nRunning multi-turn MCP-Use + MCP Task Completion eval...")
-    eval_multi_turn(mcp_server)
+    await eval_multi_turn(mcp_server)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

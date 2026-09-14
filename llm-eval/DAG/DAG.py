@@ -11,7 +11,7 @@ from agent import agent, Context  # type: ignore
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
 from deepeval.test_case import LLMTestCase, SingleTurnParams
-from deepeval.models import OpenRouterModel
+from deepeval.models import GeminiModel
 from deepeval.metrics import DAGMetric
 from deepeval.metrics.dag.graph import DeepAcyclicGraph
 from deepeval.metrics.dag.nodes import (
@@ -23,9 +23,10 @@ from deepeval.metrics.dag.nodes import (
 # Judge model
 # ---------------------------------------------------------
 
-JUDGE_MODEL = OpenRouterModel(
-    model=config.eval_model_name,
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
+JUDGE_MODEL = GeminiModel(
+    model="gemini-flash-lite-latest",
+    api_key=os.environ.get("GOOGLE_API_KEY"),
+    temperature=0,
 )
 
 # ---------------------------------------------------------
@@ -53,11 +54,19 @@ grounded_node = BinaryJudgementNode(
 grounded_node.add_verdict(False, score=0)  # hallucinated internal claim
 grounded_node.add_verdict(True, score=1)
 
+# Check retrieval_context directly (deterministic) instead of asking the judge
+# to read the actual_output. This prevents false positives where the agent
+# explicitly says "the internal KB had no info" — which is a KB mention in
+# the output but means NO internal claims were made.
 uses_internal_kb_node = BinaryJudgementNode(
-    criteria="Does the actual output reference information from the internal knowledge base?",
-    evaluation_params=[SingleTurnParams.ACTUAL_OUTPUT],
+    criteria=(
+        "Does the retrieval context contain actual retrieved documents "
+        "(i.e., it is NOT empty and does NOT consist solely of the string "
+        "'No internal documents were retrieved.')?"
+    ),
+    evaluation_params=[SingleTurnParams.RETRIEVAL_CONTEXT],
 )
-uses_internal_kb_node.add_verdict(False, score=1)  # no internal claims, nothing to check
+uses_internal_kb_node.add_verdict(False, score=1)  # no internal retrieval → nothing to check
 uses_internal_kb_node.add_verdict(True, then=grounded_node)
 
 dag = DeepAcyclicGraph(root_nodes=[uses_internal_kb_node])
@@ -81,12 +90,12 @@ QUESTIONS = [
 ]
 
 
-def run_agent(question: str):
+def run_agent(question: str, thread_id: str):
     result = agent.invoke(
-    {"messages": [{"role": "user", "content": question}]},
-    config={"configurable": {"thread_id": "eval-thread"}},
-    context=Context(user_id="eval-user"),
-)
+        {"messages": [{"role": "user", "content": question}]},
+        config={"configurable": {"thread_id": thread_id}},
+        context=Context(user_id="eval-user"),
+    )
     messages = result["messages"]
 
     retrieval_context = [
@@ -101,8 +110,10 @@ def run_agent(question: str):
 
 test_cases = []
 
-for question in QUESTIONS:
-    actual_output, retrieval_context = run_agent(question)
+for i, question in enumerate(QUESTIONS):
+    # Use a unique thread_id per question to prevent cross-contamination
+    # from the checkpointer's conversation history.
+    actual_output, retrieval_context = run_agent(question, thread_id=f"dag-eval-{i}")
 
     print(f"Q: {question}")
     print(f"Retrieved chunks: {len(retrieval_context)}\n")
