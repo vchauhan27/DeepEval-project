@@ -1,4 +1,9 @@
 import os
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import config
+
 
 from dotenv import load_dotenv
 
@@ -9,6 +14,10 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_tavily import TavilySearch
 
+from dataclasses import dataclass
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.store.memory import InMemoryStore
+from langchain.tools import ToolRuntime
 
 # ---------------------------------------------------------
 # Environment
@@ -32,7 +41,7 @@ if not TAVILY_API_KEY:
 # ---------------------------------------------------------
 
 model = ChatOpenRouter(
-    model="dots-studio/dots-3-note-preview:free",
+    model=config.agent_model_name,
     temperature=0.1,
     max_tokens=3000,
     max_retries=2,
@@ -60,7 +69,7 @@ class OpenRouterEmbeddings(OpenAIEmbeddings):
 embeddings = OpenRouterEmbeddings(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,  # type: ignore
-    model="baai/bge-m3",
+    model=config.embedding_model,
 )
 
 
@@ -79,11 +88,11 @@ vectorstore = Chroma(
     embedding_function=embeddings,
 )
 
-
+# short memory
+checkpointer = InMemorySaver()
 # ---------------------------------------------------------
 # 4. Retriever
 # ---------------------------------------------------------
-
 retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
 
@@ -154,73 +163,46 @@ def search_web(query: str) -> str:
 
     return str(result)
 
+# long memory
+store = InMemoryStore()
+
+@dataclass
+class Context:
+    user_id: str
+
+@tool
+def remember_fact(fact: str, runtime: ToolRuntime[Context]) -> str:
+    """
+    Save a fact about the user or their preferences for future
+    conversations (e.g. "prefers concise answers", "researching RAG systems").
+    """
+    if runtime.store is None:
+        return "Memory store is not available."
+    key = str(hash(fact))[:8]
+    runtime.store.put(("user_facts", runtime.context.user_id), key, {"fact": fact})
+    return "Saved."
+
+@tool
+def recall_facts(runtime: ToolRuntime[Context]) -> str:
+    """Retrieve previously saved facts about the user."""
+    if runtime.store is None:
+        return "Memory store is not available."
+    items = runtime.store.search(("user_facts", runtime.context.user_id))
+    if not items:
+        return "No saved facts about this user yet."
+    return "\n".join(item.value["fact"] for item in items)
+
 
 # ---------------------------------------------------------
 # 7. Agent system prompt
 # ---------------------------------------------------------
 
-SYSTEM_PROMPT = """
-You are a research agent.
+#   prompt1.txt -- original prompt (no explicit planning step)
+#   prompt2.txt -- current prompt (adds a "state your plan" instruction)
 
-Your job is to answer questions accurately using
-evidence from the available information sources.
-
-You have two tools.
-
-1. retrieve_documents
-
-This searches the internal knowledge base.
-
-Use it when:
-- The question concerns internal documentation.
-- The answer may exist in the provided documents.
-- The user asks about the internal research-agent system.
-- The question concerns concepts contained in the knowledge base.
-
-2. search_web
-
-This searches the public web.
-
-Use it when:
-- The user asks for current information.
-- The information may have changed recently.
-- The question concerns current software releases.
-- The internal knowledge base does not contain enough information.
-- The user explicitly asks for web research.
-
-Tool selection:
-
-Do not automatically call both tools.
-
-Choose the smallest set of tools needed to answer
-the question reliably.
-
-If the question requires both internal and external
-information, use both tools.
-
-Evidence rules:
-
-- Do not invent facts.
-- Do not pretend that retrieved information exists
-  when retrieval returned nothing.
-- Distinguish internal information from web information.
-- If sources disagree, explicitly state the disagreement.
-- Prefer authoritative sources when using web search.
-- Base factual claims on retrieved evidence whenever
-  possible.
-- If there is insufficient evidence, say so.
-
-Answer format:
-
-1. Give the answer first.
-2. Explain the important reasoning or evidence.
-3. Clearly distinguish internal knowledge from external
-   information when both are used.
-
-You are a research agent, not merely a chatbot.
-Tool selection and evidence quality are important.
-"""
-
+PROMPT_PATH = BASE_DIR / "prompt1.txt"
+ 
+SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8")
 
 # ---------------------------------------------------------
 # 8. Create agent
@@ -231,9 +213,39 @@ agent = create_agent(
     tools=[
         retrieve_documents,
         search_web,
+        remember_fact,      
+        recall_facts,       
     ],
     system_prompt=SYSTEM_PROMPT,
+    checkpointer=checkpointer,   
+    store=store,                 
+    context_schema=Context,      
 )
+
+
+# ---------------------------------------------------------
+# 8b. Traced invocation helper (for DeepEval agentic metrics)
+# ---------------------------------------------------------
+# Task Completion, Step Efficiency, Plan Adherence, and Plan Quality all
+# need to see the agent's full execution trace, not just a single
+# input/output pair. DeepEval provides a LangChain CallbackHandler that
+# captures every model call, tool call, and step as a trace automatically
+# -- no change to the agent or tools themselves, just this one wrapper.
+
+
+def invoke_with_tracing(question: str, thread_id: str = "default", user_id: str = "default", agent_instance=None):
+    from deepeval.integrations.langchain import CallbackHandler
+
+    target_agent = agent_instance or agent
+
+    return target_agent.invoke(
+        {"messages": [{"role": "user", "content": question}]},
+        config={
+            "configurable": {"thread_id": thread_id},
+            "callbacks": [CallbackHandler()],
+        },
+        context=Context(user_id=user_id),
+    )
 
 
 # ---------------------------------------------------------
@@ -272,14 +284,9 @@ def main():
 
         try:
             result = agent.invoke(
-                {
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": question,
-                        }
-                    ]
-                }
+                {"messages": [{"role": "user", "content": question}]},
+                config={"configurable": {"thread_id": "cli-session"}},
+                context=Context(user_id="cli-user"),
             )
 
             print("=" * 70)

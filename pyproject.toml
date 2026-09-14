@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.5.9",
     "deepagents>=0.7.13",
-    "deepeval>=4.2.2",
+    "deepeval[inspect]>=4.2.2",
     "langchain-chroma>=1.1.0",
     "langchain-community>=0.4.2",
     "langchain-huggingface>=1.2.2",

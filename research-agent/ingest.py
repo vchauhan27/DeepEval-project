@@ -1,4 +1,9 @@
 import os
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import config
+
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -141,7 +146,7 @@ def main():
     embeddings = OpenRouterEmbeddings(
         base_url="https://openrouter.ai/api/v1",
         api_key=OPENROUTER_API_KEY,  # type: ignore
-        model="baai/bge-m3",
+        model=config.embedding_model,
     )
 
     # -----------------------------------------------------
