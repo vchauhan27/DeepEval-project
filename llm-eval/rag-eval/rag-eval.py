@@ -28,9 +28,6 @@ os.environ.setdefault("DEEPEVAL_PER_ATTEMPT_TIMEOUT_SECONDS_OVERRIDE", "120")
 
 JUDGE_MODEL = config.get_judge_model()
 
-print(f"Using judge model: {config.JUDGE_PROVIDER} / {config.eval_model_name_gemini} (via config.py)\n")
-
-
 # ---------------------------------------------------------
 # Test cases
 # ---------------------------------------------------------

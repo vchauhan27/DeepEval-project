@@ -21,10 +21,7 @@ from deepeval.metrics import ArenaGEval
 # Judge model
 # ---------------------------------------------------------
 
-JUDGE_MODEL = OpenRouterModel(
-    model=config.eval_model_name,
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
-)
+JUDGE_MODEL = config.get_judge_model()
 
 
 

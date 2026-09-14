@@ -30,11 +30,7 @@ from deepeval.metrics import (
 # Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
 
-JUDGE_MODEL_NAME = config.JUDGE_PROVIDER
 JUDGE_MODEL = config.get_judge_model()
-
-print(f"Using judge model: {JUDGE_MODEL_NAME} (via config.py)\n")
-
 
 # ===========================================================
 # PART 1 -- Trace-based metrics

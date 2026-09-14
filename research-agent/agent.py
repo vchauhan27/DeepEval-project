@@ -41,12 +41,7 @@ DB_DIR = BASE_DIR / "chroma_db"
 # 1. OpenRouter reasoning model
 # ---------------------------------------------------------
 
-model = ChatOpenRouter(
-    model=config.agent_model_name,
-    temperature=0.1,
-    max_tokens=3000,
-    max_retries=2,
-)
+model = config.get_agent_model()
 
 # ---------------------------------------------------------
 # 2. BGE-M3 embeddings

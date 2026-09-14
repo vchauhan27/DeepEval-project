@@ -399,34 +399,38 @@ python agent.py
 
 ```bash
 # RAG quality
-cd llm-eval/rag-eval && python rag-eval.py
+python llm-eval/rag-eval/rag-eval.py
 
 # Agentic trace
-cd llm-eval/agent-eval && python agent-eval.py
+python llm-eval/agent-eval/agent-eval.py
 
 # DAG groundedness gates
-cd llm-eval/DAG && python DAG.py && python reasoning_DAG.py && python conversational_DAG.py
+python llm-eval/DAG/DAG.py
+python llm-eval/DAG/reasoning_DAG.py
+python llm-eval/DAG/conversational_DAG.py
 
 # GEval custom criteria
-cd llm-eval/GEval && python GEval.py && python coherence_GEval.py && python conversational_GEval.py
+python llm-eval/GEval/GEval.py
+python llm-eval/GEval/coherence_GEval.py
+python llm-eval/GEval/conversational_GEval.py
 
 # Safety & adversarial
-cd llm-eval/safety-eval && python safety-eval.py
+python llm-eval/safety-eval/safety-eval.py
 
 # MCP tool correctness
-cd llm-eval/MCP-Eval && python mcp-eval.py
+python llm-eval/MCP-Eval/mcp-eval.py
 
 # Prompt A/B comparison
-cd llm-eval/ARENA && python arena-GEval.py
+python llm-eval/ARENA/arena-GEval.py
 
 # All 11 conversational metrics
-cd llm-eval/multi-turn-eval && python multi_turn_metrics.py
+python llm-eval/multi-turn-eval/multi_turn_metrics.py
 
 # Paraphrase robustness
-cd llm-eval/Paraphrase-robustness && python paraphrase_robustness.py
+python llm-eval/Paraphrase-robustness/paraphrase_robustness.py
 
 # Fault-Injection Red-Teaming
-cd RED_TEAMING && python fault_injection_redteam.py
+python RED_TEAMING/fault_injection_redteam.py
 ```
 
 Results are printed to the console and (if `CONFIDENT_AI_API_KEY` is set) logged to your [Confident AI dashboard](https://app.confident-ai.com).

@@ -56,8 +56,27 @@ python conversation_simulator.py
 
 ## Suggested Order
 
-1. `golden_synthesis.py` → single-turn goldens for evaluating direct RAG/web-search answers with metrics like `AnswerRelevancyMetric` or `FaithfulnessMetric`.
-2. `conversation_simulator.py` → multi-turn `ConversationalTestCase`s for evaluating tool selection, memory, and conversational coherence with multi-turn metrics like `TurnRelevancyMetric`.
+For single-turn evaluations (like rag-eval, basic safety-eval, or ARENA), you can easily hand-write a question and answer without needing data generation.
+
+Use golden_synthesis.py only for production when you need lots of test cases.
+
+However, testing memory and context retention requires a multi-turn conversation history (a back-and-forth chat) to exist before the evaluation happens, which is exactly where conversation_simulator.py shines.
+
+Here are the specific evaluations in your suite that test memory and would rely on simulated multi-turn conversations:
+
+llm-eval/DAG/conversational_DAG.py (Memory Recall Gate)
+
+What it tests: Checks if the agent accurately recalls a specific piece of information that the user shared earlier in the conversation (e.g., if the user said their name was Alice 4 turns ago, does the agent remember it?).
+llm-eval/GEval/conversational_GEval.py (Memory Consistency)
+
+What it tests: Uses an LLM-as-judge to verify that the agent's current response doesn't contradict facts established earlier in the conversation history.
+llm-eval/multi-turn-eval/multi_turn_metrics.py (All 11 DeepEval Conversational Metrics)
+
+What it tests: This is the big one. It runs 11 different conversational metrics on a full chat transcript, including Knowledge Retention, Conversation Completeness, Goal Accuracy (can the agent infer what the user actually wants over multiple turns), and Conversation Relevancy.
+llm-eval/MCP-Eval/mcp-eval.py (Multi-Turn MCP Use)
+
+What it tests: While this script tests single-turn tool use, it also tests if the agent knows when to invoke an MCP tool (like word_count or format_citation) across a multi-turn conversation based on ongoing context.
+
 
 Example evaluation once you have test cases:
 
