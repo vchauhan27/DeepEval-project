@@ -1,35 +1,35 @@
 # Research Agent
 
-                         USER
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │ Research Agent  │
-                  │   LangChain     │
-                  └────────┬────────┘
-                           │
-                 decides which tool
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-              ▼            ▼            ▼
-      ┌───────────────┐ ┌──────────────┐ ┌──────────────┐
-      │ RAG Tool      │ │ Web Tool     │ │ Memory Tool  │
-      │               │ │              │ │              │
-      │ BGE-M3        │ │ Tavily       │ │ LangGraph    │
-      │      ↓        │ │      ↓       │ │    Store     │
-      │    Chroma     │ │    Web       │ │              │
-      └───────┬───────┘ └──────┬───────┘ └──────┬───────┘
-              │                │                │
-              └────────────┬───┴────────────────┘
-                           ▼
-                  ┌─────────────────┐
-                  │    OpenRouter   │
-                  │   Chat Model    │
-                  └────────┬────────┘
-                           │
-                           ▼
-                         ANSWER
+                                           USER
+                                            │
+                                            ▼
+                                   ┌─────────────────┐
+                                   │ Research Agent  │
+                                   │   LangChain     │
+                                   └────────┬────────┘
+                                            │
+                                  decides which tool
+                                            │
+                  ┌──────────────────┬──────┴───────┬──────────────────┐
+                  │                  │              │                  │
+                  ▼                  ▼              ▼                  ▼
+          ┌───────────────┐  ┌──────────────┐ ┌──────────────┐  ┌──────────────┐
+          │ RAG Tool      │  │ Web Tool     │ │ Memory Tool  │  │ MCP Tools    │
+          │               │  │              │ │              │  │              │
+          │ BGE-M3        │  │ Tavily       │ │ LangGraph    │  │ FastMCP      │
+          │      ↓        │  │      ↓       │ │    Store     │  │   Server     │
+          │    Chroma     │  │    Web       │ │              │  │              │
+          └───────┬───────┘  └──────┬───────┘ └──────┬───────┘  └──────┬───────┘
+                  │                 │                │                 │
+                  └─────────────────┴────────┬───────┴─────────────────┘
+                                             ▼
+                                    ┌─────────────────┐
+                                    │    OpenRouter   │
+                                    │   Chat Model    │
+                                    └────────┬────────┘
+                                             │
+                                             ▼
+                                           ANSWER
 
 This directory contains the `research-agent`, an intelligent Agentic RAG implementation built using LangChain and LangGraph. It is designed to evaluate both internal knowledge base documents and external web sources to formulate well-reasoned answers to user queries.
 
