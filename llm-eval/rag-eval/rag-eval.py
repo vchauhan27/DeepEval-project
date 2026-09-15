@@ -49,7 +49,10 @@ TEST_CASES = [
 # Run the agent and capture the retrieval context it actually used
 # ---------------------------------------------------------
 
+import uuid
+
 def run_rag(question: str):
+    thread_id = str(uuid.uuid4())
     result = agent.invoke(
         {
             "messages": [
@@ -58,7 +61,8 @@ def run_rag(question: str):
                     "content": question,
                 }
             ]
-        }
+        },
+        config={"configurable": {"thread_id": thread_id}}
     )
 
     messages = result["messages"]

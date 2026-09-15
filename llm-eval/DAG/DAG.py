@@ -11,7 +11,6 @@ from agent import agent, Context  # type: ignore
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
 from deepeval.test_case import LLMTestCase, SingleTurnParams
-from deepeval.models import GeminiModel
 from deepeval.metrics import DAGMetric
 from deepeval.metrics.dag.graph import DeepAcyclicGraph
 from deepeval.metrics.dag.nodes import (
@@ -20,14 +19,10 @@ from deepeval.metrics.dag.nodes import (
 
 
 # ---------------------------------------------------------
-# Judge model
+# Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
 
-JUDGE_MODEL = GeminiModel(
-    model="gemini-flash-lite-latest",
-    api_key=os.environ.get("GOOGLE_API_KEY"),
-    temperature=0,
-)
+JUDGE_MODEL = config.get_judge_model()
 
 # ---------------------------------------------------------
 # DAG metric

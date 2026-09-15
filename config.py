@@ -26,18 +26,18 @@ def get_agent_model():
     # )
 
 
-def get_judge_model():
+def get_judge_model(): 
 
-    # from deepeval.models import OpenRouterModel
-    # return OpenRouterModel(
-    #     model="dots-studio/dots-3-note-preview:free",
-    #     api_key=os.environ.get("OPENROUTER_API_KEY"),
-    #     temperature=0    
-    # )
-
-    from deepeval.models import GeminiModel
-    return GeminiModel(
-        model="gemini-flash-lite-latest",
-        api_key=os.environ.get("GOOGLE_API_KEY"),
-        temperature=0,
+    from deepeval.models import OpenRouterModel
+    return OpenRouterModel(
+        model="dots-studio/dots-3-note-preview:free",
+        api_key=os.environ.get("OPENROUTER_API_KEY"),
+        temperature=0    
     )
+
+    # from deepeval.models import GeminiModel
+    # return GeminiModel(
+    #     model="gemini-flash-lite-latest",
+    #     api_key=os.environ.get("GOOGLE_API_KEY"),
+    #     temperature=0,
+    # )

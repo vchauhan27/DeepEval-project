@@ -1,65 +1,24 @@
 import sys
 import os
-import sys
-import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import config
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'research-agent')))
-from agent import agent, invoke_with_tracing, Context  # type: ignore
+from agent import agent, Context  # type: ignore
 
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
-from deepeval.dataset import EvaluationDataset, Golden
 from deepeval.test_case import LLMTestCase, ToolCall
 from deepeval.metrics import (
-    TaskCompletionMetric,
-    StepEfficiencyMetric,
-    PlanAdherenceMetric,
-    PlanQualityMetric,
     ToolCorrectnessMetric,
     ArgumentCorrectnessMetric,
 )
 
-
-# ===========================================================
-# PART 1 -- Trace-based metrics
-# ===========================================================
-
 # ---------------------------------------------------------
 # Judge model  (provider configured in config.py)
 # ---------------------------------------------------------
-
 JUDGE_MODEL = config.get_judge_model()
-
-# ===========================================================
-# PART 1 -- Trace-based metrics
-# (Task Completion, Step Efficiency, Plan Adherence, Plan Quality)
-# ===========================================================
-# These score the agent's full execution trace, not a single
-# input/output pair, so they run through evals_iterator +
-# invoke_with_tracing() instead of a manually-built LLMTestCase.
-
-trace_metrics = [
-    TaskCompletionMetric(threshold=0.7, model=JUDGE_MODEL, async_mode=False),
-    StepEfficiencyMetric(threshold=0.7, model=JUDGE_MODEL, async_mode=False),
-    PlanAdherenceMetric(threshold=0.7, model=JUDGE_MODEL, async_mode=False),
-    PlanQualityMetric(threshold=0.7, model=JUDGE_MODEL, async_mode=False),
-]
-
-trace_dataset = EvaluationDataset(
-    goldens=[
-        Golden(input="Compare the internal research-agent architecture with the latest LangChain architecture.", multimodal=False),
-    ]
-)
-
-print("=" * 70)
-print("PART 1: Trace-based agentic metrics")
-print("=" * 70)
-
-for golden in trace_dataset.evals_iterator(metrics=trace_metrics):
-    invoke_with_tracing(golden.input)
-
 
 # ===========================================================
 # PART 2 -- Tool-call-based metrics
@@ -77,7 +36,6 @@ TOOL_TEST_CASES = [
         ],
     },
 ]
-
 
 def run_agent(question: str):
     result = agent.invoke(
@@ -120,7 +78,7 @@ for item in TOOL_TEST_CASES:
     )
 
 tool_metrics = [
-    ToolCorrectnessMetric(threshold=0.7, include_reason=True),
+    ToolCorrectnessMetric(threshold=0.7, model=JUDGE_MODEL, async_mode=False, include_reason=True),
     ArgumentCorrectnessMetric(threshold=0.7, model=JUDGE_MODEL, async_mode=False, include_reason=True),
 ]
 

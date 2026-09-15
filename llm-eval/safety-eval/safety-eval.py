@@ -16,7 +16,6 @@ from deepeval.metrics import (
     PIILeakageMetric,
     RoleViolationMetric,
 )
-from deepeval.models import GeminiModel
 from deepeval import evaluate
 
 load_dotenv()

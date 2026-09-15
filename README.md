@@ -30,7 +30,7 @@ DeepEval-project/
 │   ├── MCP-Eval/            # MCP tool invocation correctness
 │   ├── ARENA/               # A/B comparison between prompt variants
 │   ├── multi-turn-eval/     # All 11 DeepEval conversational metrics
-│   └── Paraphrase-robustness/ # Robustness testing with paraphrased inputs
+inputs
 │
 ├── Data-Generation/         # Synthetic test case & golden generation
 │   ├── golden_synthesis.py  # Generate goldens from the knowledge base
@@ -402,7 +402,8 @@ python agent.py
 python llm-eval/rag-eval/rag-eval.py
 
 # Agentic trace
-python llm-eval/agent-eval/agent-eval.py
+python llm-eval/agent-eval/trace-eval.py
+python llm-eval/agent-eval/tool-eval.py
 
 # DAG groundedness gates
 python llm-eval/DAG/DAG.py
