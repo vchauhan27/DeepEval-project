@@ -1,3 +1,13 @@
+import sys
+import os
+import uuid
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'research-agent')))
+import config
+
+from agent import agent  # type: ignore
+
 from deepeval import evaluate
 from deepeval.evaluate import AsyncConfig
 from deepeval.test_case import LLMTestCase
@@ -8,16 +18,6 @@ from deepeval.metrics import (
     ContextualPrecisionMetric,
     ContextualRecallMetric,
 )
-
-import sys
-import os
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-import config
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'research-agent')))
-from agent import agent  # type: ignore
 
 
 # ---------------------------------------------------------
@@ -46,25 +46,14 @@ TEST_CASES = [
 
 
 # ---------------------------------------------------------
-# Run the agent and capture the retrieval context it actually used
+# Run the agent and capture the retrieval context
 # ---------------------------------------------------------
 
-import uuid
-
 def run_rag(question: str):
-    thread_id = str(uuid.uuid4())
     result = agent.invoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": question,
-                }
-            ]
-        },
-        config={"configurable": {"thread_id": thread_id}}
+        {"messages": [{"role": "user", "content": question}]},
+        config={"configurable": {"thread_id": str(uuid.uuid4())}},
     )
-
     messages = result["messages"]
 
     retrieval_context = [
@@ -73,24 +62,13 @@ def run_rag(question: str):
         if getattr(message, "name", None) == "retrieve_documents"
     ]
 
-    tools_called = sorted(
-        {
-            call["name"]
-            for message in messages
-            if hasattr(message, "tool_calls")
-            for call in (message.tool_calls or [])
-        }
-    )
-
-    actual_output = messages[-1].content
-
-    return actual_output, retrieval_context, tools_called
+    return messages[-1].content, retrieval_context
 
 
-# async_mode=False forces each metric's internal LLM calls to run
-# sequentially instead of concurrently -- critical when the judge is a
-# free, rate-limited model. This will be noticeably slower wall-clock,
-# but far less likely to time out or get throttled.
+# ---------------------------------------------------------
+# Metrics — all share the same config, so build them in a loop
+# ---------------------------------------------------------
+
 metrics = [
     AnswerRelevancyMetric(
         threshold=0.7,
@@ -127,17 +105,13 @@ metrics = [
 test_cases = []
 
 for item in TEST_CASES:
-    actual_output, retrieval_context, tools_called = run_rag(item["input"])
+    actual_output, retrieval_context = run_rag(item["input"])
 
     print(f"Q: {item['input']}")
-    print(f"Tools called: {tools_called or 'none'}")
     print(f"Retrieved chunks: {len(retrieval_context)}\n")
 
     if not retrieval_context:
-        print(
-            "  Skipping RAG-context metrics for this question "
-            "(no internal retrieval occurred).\n"
-        )
+        print("  Skipping RAG-context metrics (no internal retrieval occurred).\n")
         continue
 
     test_cases.append(
@@ -150,11 +124,6 @@ for item in TEST_CASES:
     )
 
 if test_cases:
-    # Gemini's free tier still has per-minute rate limits (e.g. Flash
-    # models are typically capped around 15 requests/minute), so keep
-    # concurrency low rather than letting all 5 metrics fire at once.
-    # If you're on a paid Gemini tier, you can safely raise max_concurrent
-    # and set async_mode=True on the metrics above for faster runs.
     evaluate(
         test_cases=test_cases,
         metrics=metrics,

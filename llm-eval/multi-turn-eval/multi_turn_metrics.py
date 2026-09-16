@@ -1,14 +1,6 @@
 """
-A handful of these metrics (Knowledge Retention, Role Adherence, Goal
-Accuracy, Conversation Completeness, Turn Relevancy's sliding window) are
-*designed* to shine over longer conversations. With a single user/assistant
-exchange they still run and still produce a valid score, but the signal is
-necessarily shallower than it would be over a multi-turn conversation. This
-script honors your "one golden question per metric" requirement literally;
-if you later want deeper signal for those specific metrics, extend their
-`run_case(...)` call below with a short scripted follow-up (reusing the
-same thread_id keeps the conversation going, since state persists in
-`checkpointer`).
+Runs 11 multi-turn DeepEval metrics, each against one golden question.
+For deeper signal, extend any run_case() call with follow-up turns on the same thread_id.
 """
 
 import os
@@ -140,13 +132,9 @@ def build_turns(messages, question: str, context_tools=("retrieve_documents",)):
             if getattr(msg, "name", None) in context_tools:
                 retrieval_context.extend(extract_retrieval_context(str(msg.content)))
 
-    # AIMessage.content can be list[...] in multi-part LangGraph responses;
-    # Turn.content only accepts str, so coerce it.
+    # Turn.content only accepts str; coerce multi-part LangGraph responses.
     if isinstance(final_content, list):
-        final_content = " ".join(
-            part.get("text", "") if isinstance(part, dict) else str(part)
-            for part in final_content
-        )
+        final_content = " ".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in final_content)
 
     return [
         Turn(role="user", content=question),

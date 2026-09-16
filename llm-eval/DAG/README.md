@@ -2,15 +2,90 @@
 
 This directory contains the evaluation suite for assessing the agent's outputs using DeepAcyclicGraph (DAG) metrics from [DeepEval](https://github.com/confident-ai/deepeval). DAG metrics allow us to build deterministic rule trees instead of relying on a single subjective judgement.
 
+## What is DAG?
+
+**DAG = "A decision tree of yes/no questions, evaluated in order."**
+
+Instead of one LLM judge giving a single score (like GEval does), you build a **flowchart**. Each node asks a yes/no question. Based on the answer, it either gives a final score or moves to the next node.
+
+### How it works (3 steps)
+
+1. **You define nodes**, each with a yes/no question (e.g., "Is every claim backed by the retrieved context?").
+2. **You wire nodes together** into a flowchart — each verdict either gives a final score or points to the next node.
+3. **The judge LLM walks through the tree**, answering each node's question until it hits a final score.
+
+### DAG vs GEval — when to use which?
+
+| | DAG | GEval |
+|---|---|---|
+| **Output** | A hard `0` or `1` | A float like `0.73` |
+| **How** | LLM judge answers yes/no at each node in a flowchart | One LLM judge scores holistically |
+| **When it fails** | You know **exactly which node** failed | You know the score is low, but not *why* |
+| **Best for** | Hard rules (hallucination gates, tool choice checks) | Subjective qualities (coherence, tone, format) |
+
+---
+
 ## Metrics Calculated
 
-- **Internal Knowledge Groundedness Gate (`DAGMetric`)**: A multi-step metric that checks if the agent's output relies on internal knowledge, and if so, ensures that every claim is strictly backed by the retrieved context.
-- **Reasoning Validity Gate (`DAGMetric`)**: A two-step deterministic gate tailored to this agent's tool-selection + retrieval + synthesis flow:
-  1. `tool_choice_node` — was an appropriate tool called for the question (not skipped when evidence was needed, not called needlessly)?
-  2. `answer_follows_node` (only reached if node 1 passes) — does the final answer's conclusion actually follow from the evidence the tool returned, without unsupported leaps?
+### 1. Groundedness Gate (`DAG.py`)
 
-  Failing node 1 is a hard fail regardless of node 2, since a wrong tool choice makes any downstream reasoning suspect. This traces *which* reasoning step broke (tool selection vs. synthesis), which a single G-Eval float can't distinguish.
-- **Memory Recall Gate (`ConversationalDAGMetric`)**: Evaluates conversational interactions using a decision tree to verify that the agent correctly recalls and uses information shared by the user in previous turns.
+> **Question it answers:** "Is the agent making stuff up from the knowledge base?"
+
+The flowchart:
+```
+Did the agent actually retrieve any documents?
+  │
+  ├─ No  → score 1 (nothing retrieved = nothing to hallucinate, auto-pass)
+  │
+  └─ Yes → Is every KB claim backed by what was retrieved?
+              │
+              ├─ No  → score 0 (hallucinated, hard fail)
+              └─ Yes → score 1 (pass)
+```
+
+**Input:** One question → one answer + retrieval context (`LLMTestCase`)
+
+### 2. Reasoning Validity Gate (`reasoning_DAG.py`)
+
+> **Question it answers:** "Did the agent pick the right tool AND reason correctly from it?"
+
+The flowchart:
+```
+Did the agent pick the right tool for this question?
+  │
+  ├─ No  → score 0 (wrong tool = everything downstream is suspect)
+  │
+  └─ Yes → Does the conclusion follow from the retrieved evidence?
+              │
+              ├─ No  → score 0 (right tool, bad reasoning)
+              └─ Yes → score 1 (pass)
+```
+
+**Input:** One question → one answer + retrieval context + tools called (`LLMTestCase`)
+
+### 3. Memory Recall Gate (`conversational_DAG.py`)
+
+> **Question it answers:** "Did the agent remember what the user said earlier?"
+
+The flowchart (single node):
+```
+Did the assistant use the user's name/goal from turn 1 when answering turn 2?
+  │
+  ├─ No  → score 0 (forgot, hard fail)
+  └─ Yes → score 10 (pass)
+```
+
+**Input:** A multi-turn conversation (`ConversationalTestCase`)
+
+### Summary
+
+| File | What it checks | Single or Multi-turn |
+|---|---|---|
+| `DAG.py` | Is the agent **hallucinating** KB claims? | Single-turn |
+| `reasoning_DAG.py` | Did the agent pick the right **tool** and **reason** correctly? | Single-turn |
+| `conversational_DAG.py` | Does the agent **remember** earlier turns? | Multi-turn |
+
+---
 
 ## How It Is Applied
 

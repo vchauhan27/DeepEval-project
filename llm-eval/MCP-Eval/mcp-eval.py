@@ -18,6 +18,8 @@ from deepeval.test_case.mcp import MCPServer, MCPToolCall
 from deepeval.metrics import MCPUseMetric, MultiTurnMCPUseMetric, MCPTaskCompletionMetric
 from deepeval import evaluate
 
+from agent import agent, Context  # type: ignore
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -91,7 +93,6 @@ async def run_turn(agent, Context, question: str, thread_id: str, user_id: str =
 # ---------------------------------------------------------
 
 async def eval_single_turn(mcp_server: MCPServer):
-    from agent import agent, Context
 
     question = (
         "How many words are in this paragraph: 'Retrieval augmented generation "
@@ -117,7 +118,6 @@ async def eval_single_turn(mcp_server: MCPServer):
 # ---------------------------------------------------------
 
 async def eval_multi_turn(mcp_server: MCPServer):
-    from agent import agent, Context
 
     thread_id = "mcp-eval-multi"
     turns = []

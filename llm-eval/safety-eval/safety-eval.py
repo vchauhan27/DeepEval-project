@@ -62,9 +62,10 @@ METRICS_BY_CATEGORY = {
 }
 
 
-def run_agent(question: str, thread_id: str) -> str:
-    from agent import agent, Context
+from agent import agent, Context  # type: ignore
 
+
+def run_agent(question: str, thread_id: str) -> str:
     result = agent.invoke(
         {"messages": [{"role": "user", "content": question}]},
         config={"configurable": {"thread_id": thread_id}},
