@@ -1,7 +1,5 @@
 # Agent Evaluation Framework
 
-This directory contains the evaluation suite for the AI Agent workflow, built using [DeepEval](https://github.com/confident-ai/deepeval). The suite goes beyond final answers and looks at the agent's step-by-step reasoning, tool usage, and overall trajectory using a capable judge LLM (e.g., `nvidia/nemotron-3-super-120b-a12b:free`).
-
 ## Part 1: Trace-Based Metrics
 
 These metrics analyze the entire execution trace (trajectory) of the agent, including its internal thought process and sequence of actions.
